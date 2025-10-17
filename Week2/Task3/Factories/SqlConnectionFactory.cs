@@ -3,7 +3,7 @@ using Microsoft.Data.SqlClient;
 
 namespace Task3.Factories;
 
-public class SqlConnectionFactory: IDbConnectionFactory
+public class SqlConnectionFactory : IDbConnectionFactory
 {
     private readonly string _connectionString;
 
@@ -11,7 +11,7 @@ public class SqlConnectionFactory: IDbConnectionFactory
     {
         _connectionString = connectionString;
     }
-    
+
     public IDbConnection CreateConnection()
     {
         return new SqlConnection(_connectionString);
