@@ -1,14 +1,14 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Task3.Entities;
+using Task3.Enums;
 using Task3.Factories;
 using Task3.Repositories;
+using Task3.Services;
 
 namespace Task3;
 
 internal class Program
 {
-    private static ITaskRepository _taskRepository;
-
     static async Task Main(string[] args)
     {
         var builder = new ConfigurationBuilder();
@@ -20,30 +20,38 @@ internal class Program
         string connectionString = config.GetConnectionString("DefaultConnection");
 
         IDbConnectionFactory connectionFactory = new SqlConnectionFactory(connectionString);
-        _taskRepository = new TaskRepository(connectionFactory);
-        MenuOptions menuOptions = new MenuOptions(_taskRepository);
+        ITaskRepository taskRepository = new TaskRepository(connectionFactory);
+        ITaskService taskService = new TaskService(taskRepository);
+        MenuOptions menuOptions = new MenuOptions(taskService);
 
         while (true) {
             var choice = menuOptions.GetUserChoice();
 
+            MenuOption option = MenuOption.Invalid;
+            if (int.TryParse(choice, out int numericChoice)) {
+                if (Enum.IsDefined(typeof(MenuOption), numericChoice)) {
+                    option = (MenuOption)numericChoice;
+                }
+            }
+
             try {
-                switch (choice) {
-                    case "1":
+                switch (option) {
+                    case MenuOption.ListAllTasks:
                         await menuOptions.ListAllTasks();
                         break;
-                    case "2":
+                    case MenuOption.AddNewTask:
                         await menuOptions.AddNewTask();
                         break;
-                    case "3":
+                    case MenuOption.UpdateTaskStatus:
                         await menuOptions.UpdateTaskStatus();
                         break;
-                    case "4":
+                    case MenuOption.DeleteTask:
                         await menuOptions.DeleteTask();
                         break;
-                    case "5":
+                    case MenuOption.Exit:
                         Console.WriteLine("Exiting application.");
                         return;
-                    default:
+                    case MenuOption.Invalid:
                         Console.WriteLine("Invalid choice. Please try again.");
                         break;
                 }

@@ -7,7 +7,7 @@ CREATE TABLE Tasks
 (
     Id          INT PRIMARY KEY IDENTITY (1,1),
     Title       NVARCHAR(255) NOT NULL,
-    Description NVARCHAR(MAX) NULL,
+    Description NVARCHAR(1000) NULL,
     IsCompleted BIT           NOT NULL DEFAULT 0,
     CreatedAt   DATETIME      NOT NULL DEFAULT GETDATE()
 )

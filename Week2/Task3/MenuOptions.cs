@@ -1,15 +1,16 @@
 using Task3.Entities;
-using Task3.Repositories;
+using Task3.Services;
+using Task3.Utils;
 
 namespace Task3;
 
 public class MenuOptions
 {
-    private readonly ITaskRepository _taskRepository;
+    private readonly ITaskService _taskService;
 
-    public MenuOptions(ITaskRepository taskRepository)
+    public MenuOptions(ITaskService taskService)
     {
-        _taskRepository = taskRepository;
+        _taskService = taskService;
     }
 
     public string? GetUserChoice()
@@ -27,7 +28,7 @@ public class MenuOptions
     public async Task ListAllTasks()
     {
         Console.WriteLine("\nFetching tasks from the database...");
-        var tasks = (await _taskRepository.GetAllAsync()).ToList();
+        var tasks = (await _taskService.GetAllAsync()).ToList();
 
         if (!tasks.Any()) {
             Console.WriteLine("No tasks found in the database.");
@@ -49,87 +50,49 @@ public class MenuOptions
 
     public async Task AddNewTask()
     {
-        Console.WriteLine("\nAdd New TaskEntity ");
-        Console.Write("Enter Title: ");
-        string? title = Console.ReadLine();
+        Console.WriteLine("\nAdd new task");
 
-        if (string.IsNullOrEmpty(title)) {
-            Console.WriteLine("Title is required.");
-            return;
+        string title = ConsoleUtils.GetRequiredString("Enter task title: ", 255);
+        string? description = ConsoleUtils.GetOptionalString("Enter task description (optional): ", 1000);
+
+        try {
+            int newId = await _taskService.AddAsync(title, description);
+            Console.WriteLine($"Successfully added new task with ID: {newId}");
         }
-
-        const int maxTitleLength = 255;
-        if (title.Length > maxTitleLength) {
-            Console.WriteLine($"Title is too long. Maximum {maxTitleLength} characters allowed.");
-            Console.WriteLine($"Current length: {title.Length} characters.");
-            return;
+        catch (ArgumentException ex) {
+            Console.WriteLine($"Error: {ex.Message}");
         }
-
-        Console.Write("Enter Description: ");
-        string? description = Console.ReadLine();
-
-        var newTask = new TaskEntity()
-        {
-            Title = title,
-            Description = description,
-            IsCompleted = false,
-            CreatedAt = DateTime.Now
-        };
-
-        int newId = await _taskRepository.AddAsync(newTask);
-        Console.WriteLine($"Successfully added new task with ID: {newId}");
     }
 
     public async Task UpdateTaskStatus()
     {
-        Console.WriteLine("\nUpdate TaskEntity Status");
-        Console.Write("Enter the task ID to update: ");
-        if (!int.TryParse(Console.ReadLine(), out int id) || id <= 0) {
-            Console.WriteLine("Invalid ID format. Please, enter a positive number.");
-            return;
-        }
+        Console.WriteLine("\nUpdate task status");
+        int id = ConsoleUtils.GetPositiveInt("Enter the task ID to update: ");
 
         Console.WriteLine("  y - Mark task as COMPLETED");
         Console.WriteLine("  n - Mark task as UNCOMPLETED");
-        Console.Write("Enter your choice (y/n): ");
-        string? choice = Console.ReadLine()?.ToLower();
+        bool isCompleted = ConsoleUtils.GetYesNoChoice("Enter your choice (y/n): ");
 
-        bool isCompleted;
-        if (choice == "y") {
-            isCompleted = true;
-        }
-        else if (choice == "n") {
-            isCompleted = false;
-        }
-        else {
-            Console.WriteLine("Wrong choice. Please enter 'y' or 'n'.");
-            return;
-        }
-
-        bool success = await _taskRepository.UpdateStatusAsync(id, isCompleted);
-        if (success) {
+        try {
+            await _taskService.UpdateStatusAsync(id, isCompleted);
             Console.WriteLine($"Status of the task with ID: {id} has been successfully updated.");
         }
-        else {
-            Console.WriteLine($"Failed to update status of the task with ID: {id}. It might not exist.");
+        catch (Exception ex) when (ex is KeyNotFoundException || ex is ArgumentException) {
+            Console.WriteLine($"Error: {ex.Message}");
         }
     }
 
     public async Task DeleteTask()
     {
-        Console.WriteLine("\nDelete TaskEntity");
-        Console.Write("Enter the task ID to delete: ");
-        if (!int.TryParse(Console.ReadLine(), out int id) || id <= 0) {
-            Console.WriteLine("Invalid ID format. Please, enter a positive number.");
-            return;
-        }
+        Console.WriteLine("\nDelete task");
+        int id = ConsoleUtils.GetPositiveInt("Enter the task ID to delete: ");
 
-        bool success = await _taskRepository.DeleteAsync(id);
-        if (success) {
+        try {
+            await _taskService.DeleteAsync(id);
             Console.WriteLine($"Successfully deleted task with ID: {id}");
         }
-        else {
-            Console.WriteLine($"Failed to delete task with ID: {id}. It might not exist.");
+        catch (Exception ex) when (ex is KeyNotFoundException || ex is ArgumentException) {
+            Console.WriteLine($"Error: {ex.Message}");
         }
     }
 }
